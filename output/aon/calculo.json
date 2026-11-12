@@ -1,0 +1,529 @@
+{
+  "duration": 327,
+  "critical": [
+    "1.1",
+    "2.1",
+    "2.2",
+    "2.3",
+    "2.4",
+    "2.5",
+    "4.1",
+    "4.2",
+    "4.3",
+    "4.4",
+    "6.3",
+    "6.4",
+    "8.1",
+    "8.2",
+    "8.3",
+    "8.4",
+    "9.2",
+    "9.3",
+    "9.4"
+  ],
+  "effort": 600,
+  "nodes": {
+    "1.1": {
+      "id": "1.1",
+      "d": 5,
+      "label": "Revisar alcance",
+      "p": [],
+      "es": 0,
+      "ef": 5,
+      "lf": 5,
+      "ls": 0,
+      "critical": true
+    },
+    "1.2": {
+      "id": "1.2",
+      "d": 15,
+      "label": "Arquitectura",
+      "p": [
+        "1.1"
+      ],
+      "es": 5,
+      "ef": 20,
+      "lf": 63,
+      "ls": 48,
+      "critical": false
+    },
+    "1.3": {
+      "id": "1.3",
+      "d": 12,
+      "label": "Escenarios y métricas",
+      "p": [
+        "1.1"
+      ],
+      "es": 5,
+      "ef": 17,
+      "lf": 33,
+      "ls": 21,
+      "critical": false
+    },
+    "2.1": {
+      "id": "2.1",
+      "d": 6,
+      "label": "Fuentes y licencias",
+      "p": [
+        "1.1"
+      ],
+      "es": 5,
+      "ef": 11,
+      "lf": 11,
+      "ls": 5,
+      "critical": true
+    },
+    "2.2": {
+      "id": "2.2",
+      "d": 22,
+      "label": "Explorar datos",
+      "p": [
+        "2.1"
+      ],
+      "es": 11,
+      "ef": 33,
+      "lf": 33,
+      "ls": 11,
+      "critical": true
+    },
+    "2.3": {
+      "id": "2.3",
+      "d": 26,
+      "label": "Anotar secuencias",
+      "p": [
+        "2.2",
+        "1.3",
+        "4.1"
+      ],
+      "es": 51,
+      "ef": 77,
+      "lf": 77,
+      "ls": 51,
+      "critical": true
+    },
+    "2.4": {
+      "id": "2.4",
+      "d": 12,
+      "label": "Particionar datos",
+      "p": [
+        "2.3"
+      ],
+      "es": 77,
+      "ef": 89,
+      "lf": 89,
+      "ls": 77,
+      "critical": true
+    },
+    "2.5": {
+      "id": "2.5",
+      "d": 14,
+      "label": "Variantes normales",
+      "p": [
+        "2.4"
+      ],
+      "es": 89,
+      "ef": 103,
+      "lf": 103,
+      "ls": 89,
+      "critical": true
+    },
+    "3.1": {
+      "id": "3.1",
+      "d": 10,
+      "label": "Reproducir video",
+      "p": [
+        "1.2"
+      ],
+      "es": 20,
+      "ef": 30,
+      "lf": 83,
+      "ls": 73,
+      "critical": false
+    },
+    "3.2": {
+      "id": "3.2",
+      "d": 20,
+      "label": "Adaptar detector",
+      "p": [
+        "1.2",
+        "2.2"
+      ],
+      "es": 33,
+      "ef": 53,
+      "lf": 83,
+      "ls": 63,
+      "critical": false
+    },
+    "3.3": {
+      "id": "3.3",
+      "d": 20,
+      "label": "Seguimiento",
+      "p": [
+        "3.1",
+        "3.2"
+      ],
+      "es": 53,
+      "ef": 73,
+      "lf": 103,
+      "ls": 83,
+      "critical": false
+    },
+    "3.4": {
+      "id": "3.4",
+      "d": 15,
+      "label": "Evaluar seguimiento",
+      "p": [
+        "3.3",
+        "2.4"
+      ],
+      "es": 89,
+      "ef": 104,
+      "lf": 127,
+      "ls": 112,
+      "critical": false
+    },
+    "4.1": {
+      "id": "4.1",
+      "d": 18,
+      "label": "Definir normalidad",
+      "p": [
+        "1.3",
+        "2.2"
+      ],
+      "es": 33,
+      "ef": 51,
+      "lf": 51,
+      "ls": 33,
+      "critical": true
+    },
+    "4.2": {
+      "id": "4.2",
+      "d": 24,
+      "label": "Entrenar base",
+      "p": [
+        "4.1",
+        "2.5",
+        "3.3"
+      ],
+      "es": 103,
+      "ef": 127,
+      "lf": 127,
+      "ls": 103,
+      "critical": true
+    },
+    "4.3": {
+      "id": "4.3",
+      "d": 28,
+      "label": "Ajustar modelo",
+      "p": [
+        "4.2",
+        "3.4"
+      ],
+      "es": 127,
+      "ef": 155,
+      "lf": 155,
+      "ls": 127,
+      "critical": true
+    },
+    "4.4": {
+      "id": "4.4",
+      "d": 20,
+      "label": "Evaluar eventos",
+      "p": [
+        "4.3"
+      ],
+      "es": 155,
+      "ef": 175,
+      "lf": 175,
+      "ls": 155,
+      "critical": true
+    },
+    "5.1": {
+      "id": "5.1",
+      "d": 10,
+      "label": "Telemetría simulada",
+      "p": [
+        "1.2"
+      ],
+      "es": 20,
+      "ef": 30,
+      "lf": 140,
+      "ls": 130,
+      "critical": false
+    },
+    "5.2": {
+      "id": "5.2",
+      "d": 20,
+      "label": "Posición e incertidumbre",
+      "p": [
+        "5.1"
+      ],
+      "es": 30,
+      "ef": 50,
+      "lf": 160,
+      "ls": 140,
+      "critical": false
+    },
+    "5.3": {
+      "id": "5.3",
+      "d": 10,
+      "label": "Administrar recursos",
+      "p": [
+        "1.2"
+      ],
+      "es": 20,
+      "ef": 30,
+      "lf": 160,
+      "ls": 150,
+      "critical": false
+    },
+    "5.4": {
+      "id": "5.4",
+      "d": 15,
+      "label": "Recomendar recursos",
+      "p": [
+        "5.2",
+        "5.3"
+      ],
+      "es": 50,
+      "ef": 65,
+      "lf": 175,
+      "ls": 160,
+      "critical": false
+    },
+    "5.5": {
+      "id": "5.5",
+      "d": 10,
+      "label": "Evaluar localización",
+      "p": [
+        "5.4",
+        "1.3"
+      ],
+      "es": 65,
+      "ef": 75,
+      "lf": 205,
+      "ls": 195,
+      "critical": false
+    },
+    "6.1": {
+      "id": "6.1",
+      "d": 15,
+      "label": "Comunicar con dron",
+      "p": [
+        "1.2"
+      ],
+      "es": 20,
+      "ef": 35,
+      "lf": 175,
+      "ls": 160,
+      "critical": false
+    },
+    "6.2": {
+      "id": "6.2",
+      "d": 15,
+      "label": "Reobservación",
+      "p": [
+        "6.1",
+        "3.1",
+        "4.4"
+      ],
+      "es": 175,
+      "ef": 190,
+      "lf": 193,
+      "ls": 178,
+      "critical": false
+    },
+    "6.3": {
+      "id": "6.3",
+      "d": 18,
+      "label": "Asistencia simulada",
+      "p": [
+        "6.1",
+        "4.4",
+        "5.4"
+      ],
+      "es": 175,
+      "ef": 193,
+      "lf": 193,
+      "ls": 175,
+      "critical": true
+    },
+    "6.4": {
+      "id": "6.4",
+      "d": 12,
+      "label": "Verificar simulación",
+      "p": [
+        "6.2",
+        "6.3",
+        "1.3"
+      ],
+      "es": 193,
+      "ef": 205,
+      "lf": 205,
+      "ls": 193,
+      "critical": true
+    },
+    "7.1": {
+      "id": "7.1",
+      "d": 20,
+      "label": "Interfaz del operador",
+      "p": [
+        "1.2"
+      ],
+      "es": 20,
+      "ef": 40,
+      "lf": 165,
+      "ls": 145,
+      "critical": false
+    },
+    "7.2": {
+      "id": "7.2",
+      "d": 12,
+      "label": "Corrección y etiquetas",
+      "p": [
+        "7.1"
+      ],
+      "es": 40,
+      "ef": 52,
+      "lf": 177,
+      "ls": 165,
+      "critical": false
+    },
+    "7.3": {
+      "id": "7.3",
+      "d": 14,
+      "label": "Seleccionar ejemplos",
+      "p": [
+        "7.2",
+        "4.1"
+      ],
+      "es": 52,
+      "ef": 66,
+      "lf": 191,
+      "ls": 177,
+      "critical": false
+    },
+    "7.4": {
+      "id": "7.4",
+      "d": 14,
+      "label": "Actualizar modelo",
+      "p": [
+        "7.3",
+        "4.4"
+      ],
+      "es": 175,
+      "ef": 189,
+      "lf": 205,
+      "ls": 191,
+      "critical": false
+    },
+    "8.1": {
+      "id": "8.1",
+      "d": 20,
+      "label": "Integrar componentes",
+      "p": [
+        "3.4",
+        "5.5",
+        "6.4",
+        "7.4"
+      ],
+      "es": 205,
+      "ef": 225,
+      "lf": 225,
+      "ls": 205,
+      "critical": true
+    },
+    "8.2": {
+      "id": "8.2",
+      "d": 15,
+      "label": "Pruebas funcionales",
+      "p": [
+        "8.1"
+      ],
+      "es": 225,
+      "ef": 240,
+      "lf": 240,
+      "ls": 225,
+      "critical": true
+    },
+    "8.3": {
+      "id": "8.3",
+      "d": 18,
+      "label": "Evaluación final",
+      "p": [
+        "8.2"
+      ],
+      "es": 240,
+      "ef": 258,
+      "lf": 258,
+      "ls": 240,
+      "critical": true
+    },
+    "8.4": {
+      "id": "8.4",
+      "d": 12,
+      "label": "Corregir y verificar",
+      "p": [
+        "8.3"
+      ],
+      "es": 258,
+      "ef": 270,
+      "lf": 270,
+      "ls": 258,
+      "critical": true
+    },
+    "9.1": {
+      "id": "9.1",
+      "d": 18,
+      "label": "Documentación y manual",
+      "p": [
+        "8.4"
+      ],
+      "es": 270,
+      "ef": 288,
+      "lf": 315,
+      "ls": 297,
+      "critical": false
+    },
+    "9.2": {
+      "id": "9.2",
+      "d": 32,
+      "label": "Redactar memoria",
+      "p": [
+        "8.4"
+      ],
+      "es": 270,
+      "ef": 302,
+      "lf": 302,
+      "ls": 270,
+      "critical": true
+    },
+    "9.3": {
+      "id": "9.3",
+      "d": 13,
+      "label": "Revisar memoria",
+      "p": [
+        "9.2"
+      ],
+      "es": 302,
+      "ef": 315,
+      "lf": 315,
+      "ls": 302,
+      "critical": true
+    },
+    "9.4": {
+      "id": "9.4",
+      "d": 12,
+      "label": "Defensa y entregables",
+      "p": [
+        "9.1",
+        "9.3"
+      ],
+      "es": 315,
+      "ef": 327,
+      "lf": 327,
+      "ls": 315,
+      "critical": true
+    }
+  }
+}
