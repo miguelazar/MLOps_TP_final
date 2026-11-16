@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parent
 if (ROOT / 'stellar').exists():
     sys.path.insert(0, str(ROOT / 'stellar'))
 else:
-    sys.path.insert(0, str(ROOT.parent / 'notebook_example'))
+    sys.path.insert(0, str(ROOT.parent / 'notebooks'))
     sys.path.insert(0, str(ROOT.parent / 'airflow' / 'dags'))
 from star_workflow import prepare_d2, make_pipeline, BANDS, D2_FEATURES
 from star_sdss_source import parse_sdss_csv

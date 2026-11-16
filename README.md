@@ -150,7 +150,8 @@ Este repositorio está abierto para que realicen sus propios Pull Requests y as�
 
 ## Flujo de clasificación estelar
 
-Para ejecutar el DAG, entrenar el modelo y usar la web, seguir [STAR_SETUP.md](STAR_SETUP.md).
+Para ejecutar los DAGs de ingesta y entrenamiento, y usar la web, seguir [STAR_SETUP.md](STAR_SETUP.md).
+`train_star_model` comparte código con la notebook y compara/promueve champion en una tarea final independiente.
 Los comandos funcionan desde la carpeta donde se clone o extraiga el repositorio.
 
 Una vez disponibles MLflow, MinIO y el modelo `star_type_model_prod@champion`,

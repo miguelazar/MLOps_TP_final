@@ -13,10 +13,10 @@ from star_sdss_source import SQL, SDSS_ENDPOINT, fetch_csv
     schedule=None, catchup=False, max_active_runs=1,
     default_args={'owner': 'rmb', 'retries': 2, 'retry_delay': timedelta(minutes=2)},
     tags=['ETL', 'SDSS', 'star type'],
-    doc_md='''Descarga hasta 1000 objetos mediante la consulta SQL solicitada.
+    doc_md='''Descarga hasta 1000 objetos aleatorios con ORDER BY NEWID() en cada consulta.
 Guarda `s3://data/raw/star/starset.csv` y una copia por hash para trazabilidad.
 Registra la ingesta en MLflow `star type`. La preparación D2 y el entrenamiento
-se ejecutan desde `notebook_example/experiment_star_mlflow.ipynb`.
+se ejecutan con `train_star_model` o desde `notebooks/experiment_star_mlflow.ipynb`.
 No modifica el dataset ni los modelos de Heart Disease.''',
 )
 def process_etl_star_data():
@@ -45,7 +45,8 @@ def process_etl_star_data():
                              'airflow.run_id': context['run_id'], 'dataset.sha256': sha})
             mlflow.log_params({'dataset_uri': f's3://{bucket}/{key}',
                                'snapshot_uri': f's3://{bucket}/{snapshot}',
-                               'source_url': SDSS_ENDPOINT, 'query_limit': 1000})
+                               'source_url': SDSS_ENDPOINT, 'query_limit': 1000,
+                               'sampling_method': 'random_order_by_newid'})
             mlflow.log_metric('raw_rows', rows)
             mlflow.log_text(SQL, 'source/query.sql')
             mlflow.log_text(payload.decode('utf-8'), 'source/starset.csv')

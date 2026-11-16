@@ -7,8 +7,9 @@ extraído. No requieren la ruta del autor, Anaconda ni el repositorio original.
 
 El clon contiene código y configuración. Cada usuario genera sus datos,
 experimentos y modelo `champion`; no recibe los volúmenes Docker de otro equipo.
-Compose levanta la infraestructura. La notebook y la web se ejecutan por separado
-en Windows, siguiendo los pasos 3 y 4.
+Compose levanta la infraestructura. El entrenamiento puede ejecutarse con el DAG
+`train_star_model` o con la notebook; ambos usan el mismo código. La web se inicia
+en Windows después de disponer de un champion, siguiendo el paso 4.
 
 ## 1. Requisitos y arranque
 
@@ -85,8 +86,8 @@ docker compose --profile airflow --profile mlflow logs --tail 100 airflow-init a
 Para volver a levantar el proyecto después de apagar el equipo, iniciar primero
 Docker Desktop y repetir el comando `up -d --build` desde esta misma carpeta.
 Los volúmenes existentes conservan datos, experimentos y modelos; no hace falta
-entrenar de nuevo si el champion ya está guardado. La sección 6 indica cómo detener
-los contenedores conservando esos datos.
+entrenar de nuevo si el champion ya está guardado. Para detenerlos conservando datos, usar
+`docker compose --profile airflow --profile mlflow down`, sin agregar `-v`.
 
 ### 1.6. Acceder a los servicios
 
@@ -130,7 +131,8 @@ docker compose --profile airflow --profile mlflow logs --tail 100 airflow-dag-pr
 ```
 
 El DAG consulta SDSS DR17 mediante la API SQL, une `PhotoObj` y `SpecObj`, filtra
-`scienceprimary = 1` y toma hasta 1000 filas ordenadas por `objid`. Guarda:
+`scienceprimary = 1` y toma hasta 1000 filas aleatorias con `ORDER BY NEWID()`.
+Cada nueva ejecución de ingesta solicita otra muestra, sin balancear las clases. Guarda:
 
 - CSV original validado: `s3://data/raw/star/starset.csv`.
 - Copia identificada por hash: `s3://data/raw/star/snapshots/<sha256>.csv`.
@@ -138,46 +140,123 @@ El DAG consulta SDSS DR17 mediante la API SQL, une `PhotoObj` y `SpecObj`, filtr
 
 Confirmar esos resultados en MinIO y MLflow antes de entrenar. El ID numérico del
 experimento puede variar entre equipos: el código lo busca por su nombre.
-El DAG realiza la ingesta; la búsqueda y el entrenamiento se ejecutan en la notebook.
+Este DAG realiza la ingesta; `train_star_model` o la notebook realizan el entrenamiento.
+Para entrenar con datos nuevos, ejecutar primero otra ingesta y luego el entrenamiento.
+Reentrenar sin una ingesta nueva reutiliza el snapshot existente. El experimento
+sigue llamándose `star type`; cada ingesta y búsqueda se identifican por sus runs.
+MLflow guarda `sampling_method=random_order_by_newid`, la consulta SQL y el hash.
+La muestra aleatoria no tiene semilla SQL; el CSV conservado permite reproducirla.
+Los snapshots antiguos, obtenidos por objid, siguen siendo válidos y no se modifican.
 
-## 3. Preparar el kernel y ejecutar la notebook
+## 3. Entrenar, evaluar y promover: DAG o notebook
 
-Crear un entorno aislado, usando un Python compatible:
+El paquete `airflow/dags/star_training/` contiene la lógica compartida de
+preparación D2, búsqueda Optuna, entrenamiento, evaluación, registro y promoción.
+Elegir una de las dos alternativas siguientes: no hace falta ejecutar ambas.
+
+### 3.1. Ejecutar el DAG de entrenamiento
+
+Después de actualizar el repositorio, reconstruir las dependencias de Airflow y
+recrear los servicios que lo necesiten desde la raíz del repo:
+
+```powershell
+docker compose --profile airflow --profile mlflow up -d --build
+docker compose --profile airflow --profile mlflow ps -a
+```
+
+Esperar a que Airflow esté saludable. La nueva imagen incluye Optuna y
+scikit-learn 1.7.2; no alcanza con reiniciar un worker que todavía usa la imagen
+anterior. Las seis tareas usan `ExternalPythonOperator` con el entorno aislado
+`/home/airflow/star-venv`, preinstalado en la imagen; sus versiones de numpy/pandas
+no modifican las de los proveedores internos de Airflow. No se descargan paquetes
+dentro de cada tarea.
+
+1. Completar primero `process_etl_star_data` para generar el snapshot de ingesta.
+2. En Airflow, habilitar **`train_star_model`** y pulsar **Trigger DAG**.
+3. Revisar los parámetros del formulario y lanzar la ejecución manual.
+
+| Parámetro | Predeterminado | Uso |
+|---|---|---|
+| `n_trials` | 250 | Búsqueda completa; usar 2 o 5 para una prueba breve. |
+| `seed` | 42 | Partición train/test y semilla de Optuna. |
+| `snapshot_sha256` | Vacío | Última ingesta exitosa al iniciar; opcionalmente indicar un hash concreto. |
+| `min_delta` | 0.0 | Se exige F1 candidato > F1 champion + este valor; 0.01 equivale a un punto de F1. |
+
+El DAG no se dispara automáticamente con la ingesta. Su ejecución tiene seis
+tareas visibles de forma independiente:
+
+| Tarea | Resultado |
+|---|---|
+| `resolve_snapshot` | Fija el CSV por SHA-256 y comprueba su integridad. |
+| `search_hyperparameters` | Optuna CV5, selección y runs hijos en MLflow. |
+| `train_and_log_model` | Pipeline completo con scaler y artefacto del candidato. |
+| `evaluate_candidate` | Recarga del modelo, F1 weighted/macro, reporte y gráficos de test. |
+| `register_candidate` | Versión del modelo `star_type_model_prod`, sin mover el alias. |
+| `compare_and_promote_champion` | Compara ambas versiones y decide si cambia `champion`. |
+
+**La promoción es una tarea separada del entrenamiento y del registro.** Allí se
+evalúa al candidato y al champion vigente sobre exactamente las mismas filas y
+columnas de test. No se comparan métricas históricas de datasets diferentes.
+
+- Mejora estricta del F1 weighted: promueve al candidato.
+- Empate o resultado inferior: conserva el champion; la tarea termina en Success.
+- Sin champion: promueve el primer candidato que pase la carga y validación.
+- Error al cargar/evaluar, esquema incorrecto o alias cambiado durante la
+  comparación: falla la tarea antes de actualizar el alias.
+
+En los logs y el XCom de `compare_and_promote_champion` se ven `promoted`,
+`reason`, versiones, ambos F1, SHA del dataset y cantidad de filas evaluadas.
+En el run padre de MLflow se guarda **`promotion/comparison.json`**, con la
+decisión y sus métricas. Las versiones anteriores permanecen en el registro.
+La web detecta un nuevo champion al refrescar su caché, hasta un minuto después.
+
+Datos y checkpoints permanecen en S3; XCom solo transmite referencias pequeñas.
+Los checkpoints están en `s3://data/training/star/<hash_de_ejecucion>/`.
+Si falla evaluación, registro o comparación, corregir el problema y limpiar/reintentar
+solo esa tarea y las posteriores de la misma ejecución. No repetir la búsqueda.
+Las etapas ya completadas recuperan sus checkpoints, y un registro ya creado se
+reutiliza. Una búsqueda interrumpida antes de completarse puede repetir sus trials.
+Para una búsqueda nueva o una nueva decisión sobre otro champion, crear otro Dag Run.
+
+Solo se permite un Dag Run de entrenamiento activo. No ejecutar simultáneamente
+otro promotor desde la notebook o desde la interfaz: MLflow no ofrece una escritura
+condicional atómica del alias entre aplicaciones.
+
+La muestra aleatoria proviene del catálogo espectroscópico y no garantiza balance
+de clases ni ausencia de sesgos del catálogo. El F1 macro y el reporte por clase se registran,
+pero la regla de promoción usa únicamente F1 weighted. El test participa en la
+decisión de promoción; no es un benchmark independiente de todas las promociones.
+Si un champion antiguo vio objetos de un snapshot nuevo, puede existir solapamiento:
+para una evaluación científica, reservar un conjunto externo no usado al entrenar.
+
+### 3.2. Alternativa interactiva: notebook con el mismo código
+
+Para explorar o visualizar el proceso en Windows, crear un kernel aislado:
 
 ```powershell
 python -m venv .venv-star
-.\.venv-star\Scripts\python.exe -m pip install -r .\notebook_example\requirements_star.txt
+.\.venv-star\Scripts\python.exe -m pip install -r .\notebooks\requirements_star.txt
 .\.venv-star\Scripts\python.exe -m ipykernel install --user --name mlops-star --display-name "Python (MLOps star)"
 ```
 
-Si se usa el lanzador de Windows, el primer comando puede ser
-`py -3.12 -m venv .venv-star`. No hace falta activar el entorno.
-El [registro del kernel](https://ipython.readthedocs.io/en/stable/install/kernel_install.html)
-permite seleccionarlo desde un Jupyter instalado en otro entorno.
-
-En VS Code, abrir `notebooks/experiment_star_mlflow.ipynb` y seleccionar
-**Python (MLOps star)** o el intérprete `.venv-star/Scripts/python.exe` como kernel.
-Para usar JupyterLab si no se tiene instalado:
+También puede usarse `py -3.12 -m venv .venv-star`. No es necesario activar el
+entorno. En VS Code/Jupyter abrir `notebooks/experiment_star_mlflow.ipynb` y
+seleccionar **Python (MLOps star)** o `.venv-star/Scripts/python.exe`.
+Si falta JupyterLab:
 
 ```powershell
 .\.venv-star\Scripts\python.exe -m pip install jupyterlab
 .\.venv-star\Scripts\python.exe -m jupyterlab
 ```
 
-Seleccionar ese kernel al abrir la notebook. Iniciar Jupyter desde la raíz del
-repo o desde `notebooks`, ubicaciones que admite la importación del auxiliar.
-Después de instalar o cambiar paquetes, reiniciar el kernel y ejecutar las celdas
-en orden. Se requieren **MLflow 3.16.1 y scikit-learn 1.7.2**, como especifican los
-archivos de dependencias de notebook y web.
+Iniciar desde la raíz o `notebooks/`, reiniciar el kernel tras instalar paquetes y
+ejecutar las celdas en orden. Las funciones se importan del mismo paquete utilizado
+por el DAG; `notebooks/star_workflow.py` queda como adaptador de compatibilidad.
+Se requieren MLflow 3.16.1 y scikit-learn 1.7.2, como en la web y el worker.
 
-### Configuración de la notebook
-
-Con los valores predeterminados no hace falta editar nada. La notebook **no carga
-el `.env` automáticamente**: usa sus valores predeterminados y las variables del
-proceso de Jupyter. La web sí carga `.env`.
-
-Si se cambiaron puertos o credenciales, agregar antes de la celda de configuración
-una celda como la siguiente, con los valores correspondientes:
+Con valores predeterminados no hace falta cambiar conexiones. La notebook no lee
+`.env` automáticamente. Si cambian puertos o credenciales, configurar antes de su
+celda de conexión:
 
 ```python
 import os
@@ -185,44 +264,19 @@ os.environ["STAR_MLFLOW_URI"] = "http://127.0.0.1:5001"
 os.environ["STAR_S3_ENDPOINT"] = "http://127.0.0.1:9000"
 os.environ["AWS_ACCESS_KEY_ID"] = "minio"
 os.environ["AWS_SECRET_ACCESS_KEY"] = "minio123"
+# Opcional para una prueba breve:
+# os.environ["STAR_N_TRIALS"] = "2"
+# os.environ["STAR_MIN_DELTA"] = "0"
 ```
 
-Las variables AWS ya definidas en el proceso prevalecen sobre los valores por
-defecto de la notebook. Usar las credenciales de este MinIO; no guardar credenciales
-personales en la notebook que se publique.
+Usar las credenciales del MinIO local, sin publicar credenciales personales.
+La notebook tiene celdas distintas para buscar, entrenar, evaluar, registrar y
+comparar/promover. Si una publicación falla, reintentar esa celda manteniendo
+`search`, `trained`, `evaluated` o `candidate` en memoria, sin repetir Optuna.
+Tras reiniciar el kernel esas variables se pierden; el DAG ofrece checkpoints
+persistentes para ese caso. La celda final de inferencia carga el champion vigente,
+que puede seguir siendo el modelo anterior si el candidato no lo mejoró.
 
-### Entrenamiento y publicación
-
-La notebook limpia los datos y construye nueve entradas:
-`u, g, r, i, z, u-g, g-r, r-i, i-z`. No usa `redshift`, coordenadas ni `objid` como
-predictores. Separa 80/20 de forma estratificada y prueba 250 combinaciones con
-Optuna, validación cruzada de cinco folds y F1 ponderado. Cada Pipeline ajusta el
-scaler dentro del fold; los datos raw no se sobrescriben.
-
-Luego guarda el Pipeline, evalúa sobre test, verifica que el modelo recargado
-prediga lo mismo y registra una versión de **`star_type_model_prod`**, asignándole
-el alias **`champion`**. Ejecutar también la última celda de inferencia para
-confirmar que el alias puede cargarse.
-
-Para una prueba breve de instalación, antes de la celda de configuración:
-
-```python
-os.environ["STAR_N_TRIALS"] = "5"
-```
-
-Esa prueba también publica su modelo si se ejecuta la celda de registro. Para la
-búsqueda completa, quitar esa variable y ejecutar una nueva búsqueda con 250 trials.
-Cada búsqueda crea un run padre nuevo; cada registro crea una versión nueva. El
-alias se mueve al modelo recién registrado sin comparar automáticamente con el
-champion anterior. La muestra TOP 1000 no es aleatoria: sus métricas no describen
-por sí solas todo SDSS.
-
-Si falla **solo la recarga** `mlflow.sklearn.load_model(model_uri)` por conexión,
-comprobar MinIO y reintentar esa misma celda, manteniendo el kernel. Si falla el
-guardado, reintentar la celda de entrenamiento/guardado. No hace falta repetir
-Optuna mientras `study`, los datos y el run padre sigan en memoria. Si se reinicia
-el kernel, esas variables se pierden. Repetir la celda de registro puede crear
-otra versión; comprobar MLflow antes de reintentarlo.
 
 ## 4. Iniciar la web y predecir
 
@@ -273,7 +327,7 @@ No desactivar la validación TLS ni usar `--trusted-host` para resolverlo.
 ### Consultas SDSS y pip de Windows
 
 El secreto del build **no configura HTTPS en tiempo de ejecución**. Si también
-falla SDSS y se generó el bundle validado con el script anterior:
+falla SDSS ya se generó el bundle validado con `preparar-ca.ps1`:
 
 ```powershell
 if (-not (Test-Path .\airflow\config\sdss-ca-bundle.pem)) {

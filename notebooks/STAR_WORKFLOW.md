@@ -3,16 +3,18 @@
 ## Archivos y uso
 
 1. Airflow: ejecutar `process_etl_star_data`, DAG manual en `airflow/dags/etl_star_data.py`.
-   Consulta SDSS DR17 mediante su API SQL oficial. Guarda la respuesta validada en
+   Consulta hasta 1000 objetos aleatorios con `ORDER BY NEWID()` mediante la API SQL oficial. Guarda la respuesta validada en
    `s3://data/raw/star/starset.csv`, y una copia por hash en `raw/star/snapshots/`.
    La ingesta se registra como run independiente en `star type`.
-2. Abrir `notebook_example/experiment_star_mlflow.ipynb` desde Windows.
+2. Abrir `notebooks/experiment_star_mlflow.ipynb` desde Windows.
    Seleccionar un kernel con las dependencias de `requirements_star.txt`.
    El cliente se fija en MLflow 3.16.1, igual que el servidor actual; al cambiar
    versiones en el kernel, reiniciarlo antes de ejecutar la notebook.
    La notebook usa `localhost:5001` para MLflow y `localhost:9000` para MinIO.
-3. Ejecutar en orden. La última celda de registro crea una versión de
-   `star_type_model_prod` y actualiza su alias `champion`.
+3. Ejecutar en orden. El registro crea o recupera la versión candidata.
+   La celda separada de comparación mueve `champion` solo si mejora el F1 weighted.
+   Como alternativa, ejecutar las seis etapas del DAG `train_star_model`,
+   que usa el mismo paquete compartido `airflow/dags/star_training`.
 
 Después del build inicial indicado en `STAR_SETUP.md`, los cambios de DAG no requieren reconstruir imágenes: se montan desde el repositorio y la
 notebook se ejecuta localmente. El DAG usa requests, boto3 y MLflow ya instalados
@@ -57,9 +59,11 @@ Se comprueba la recarga del artefacto y sus predicciones antes de publicar el al
 Los modelos y experimentos de Heart Disease no se modifican. Su FastAPI continúa
 siendo exclusiva para Heart Disease en el puerto 8800. La web y API estelar se ejecutan por separado en `star_web`, puerto 8801; seguir `../STAR_SETUP.md`.
 
-La muestra TOP 1000 ordenada por objid no es aleatoria y tiene pocas observaciones
-QSO. Las métricas no deben interpretarse como rendimiento de todo SDSS.
-No se hace una comparación automática contra un champion anterior.
+Las nuevas ingestas toman TOP 1000 aleatorio con `ORDER BY NEWID()`; no hay
+balanceo de clases ni garantía de representatividad de todo SDSS. Los snapshots
+anteriores se conservan. Para cambiar la muestra hay que repetir la ingesta.
+La promoción compara automáticamente ambos modelos en el mismo test,
+y solo una mejora estricta del F1 weighted mueve el alias champion.
 
 Para reproducir inferencia usar las versiones registradas en
 `environment/versions.json`; en particular el mismo scikit-learn del entrenamiento.
@@ -74,6 +78,6 @@ colores y aislamiento del scaler dentro de CV.
 ## Referencias
 
 - Preparación D2: `tp-clasificacion-estelar_final.ipynb (referencia académica; no se necesita para ejecutar esta notebook)`.
-- Patrón Optuna/MLflow: `notebook_example/experiment_mlflow.ipynb`.
+- Patrón Optuna/MLflow: `notebooks/experiment_mlflow.ipynb`.
 - API oficial: https://skyserver.sdss.org/dr17/Support/Api#search-services
 - Consulta SQL: https://skyserver.sdss.org/dr17/SearchTools/sql

@@ -9,7 +9,7 @@ SQL = '''SELECT TOP 1000
 FROM PhotoObj AS p
 JOIN SpecObj AS s ON s.bestobjid = p.objid
 WHERE s.scienceprimary = 1
-ORDER BY p.objid'''
+ORDER BY NEWID()'''
 COLUMNS = ['objid', 'ra', 'dec', 'u', 'g', 'r', 'i', 'z', 'class', 'redshift']
 
 

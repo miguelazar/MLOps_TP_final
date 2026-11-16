@@ -1,3 +1,9 @@
-mlflow[extras]==3.16.1
+mlflow==3.16.1
 boto3~=1.34
 requests>=2.31,<3
+# Mantener compatibilidad con los proveedores de la imagen Airflow 3.0.2.
+numpy>=1.26,<2
+pandas>=2.1.2,<2.2
+cryptography>=43,<46
+cffi>=1.15,<2
+pyOpenSSL<26
