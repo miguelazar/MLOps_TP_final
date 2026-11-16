@@ -121,7 +121,7 @@ Dado que no estamos utilizando Amazon S3, sino una implementación local de los 
 ```bash
 AWS_ACCESS_KEY_ID=minio   
 AWS_SECRET_ACCESS_KEY=minio123 
-AWS_ENDPOINT_URL_S3=http://localhost:90000
+AWS_ENDPOINT_URL_S3=http://localhost:9000
 ```
 
 MLflow también tiene una variable de entorno que afecta su conexión a los buckets:
@@ -146,3 +146,19 @@ Este repositorio está abierto para que realicen sus propios Pull Requests y as�
 - Reemplazar Airflow y MLflow con [Metaflow](https://metaflow.org/) o [Kubeflow](https://www.kubeflow.org).
 - Reemplazar MLflow con [Seldon-Core](https://github.com/SeldonIO/seldon-core).
 - Agregar un servicio de tableros como, por ejemplo, [Grafana](https://grafana.com).
+
+
+## Flujo de clasificación estelar
+
+Para ejecutar el DAG, entrenar el modelo y usar la web, seguir [STAR_SETUP.md](STAR_SETUP.md).
+Los comandos funcionan desde la carpeta donde se clone o extraiga el repositorio.
+
+Una vez disponibles MLflow, MinIO y el modelo `star_type_model_prod@champion`,
+abrir PowerShell en la raíz del repositorio y ejecutar:
+
+```powershell
+.\iniciar-web.ps1
+```
+
+El lanzador configura un entorno Python aislado y abre el servidor local de la
+web en `http://localhost:8801`. No requiere Anaconda ni una ruta específica.

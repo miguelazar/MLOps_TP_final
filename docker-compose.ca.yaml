@@ -1,0 +1,36 @@
+# Opcional: usar una CA propia ya validada para instalar desde PyPI.
+# docker compose -f docker-compose.yaml -f docker-compose.ca.yaml ...
+x-airflow-ca-build: &airflow-ca-build
+  context: ./dockerfiles/airflow
+  secrets:
+    - pip_ca
+
+services:
+  airflow-init:
+    build: *airflow-ca-build
+  airflow-apiserver:
+    build: *airflow-ca-build
+  airflow-scheduler:
+    build: *airflow-ca-build
+  airflow-dag-processor:
+    build: *airflow-ca-build
+  airflow-worker:
+    build: *airflow-ca-build
+  airflow-triggerer:
+    build: *airflow-ca-build
+  airflow-cli:
+    build: *airflow-ca-build
+  mlflow:
+    build:
+      context: ./dockerfiles/mlflow
+      secrets:
+        - pip_ca
+  fastapi:
+    build:
+      context: ./dockerfiles/fastapi
+      secrets:
+        - pip_ca
+
+secrets:
+  pip_ca:
+    file: ${STAR_PIP_CA_BUNDLE:-./airflow/config/pip-ca-bundle.pem}

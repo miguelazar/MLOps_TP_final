@@ -161,3 +161,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .DS_store
+airflow/config/sdss-ca-bundle.pem
+/.venv-star-web/
+/.venv-star/
+airflow/config/pip-ca-bundle.pem
+
+# Configuracion CA local generada por preparar-ca.ps1
+/docker-compose.override.yaml

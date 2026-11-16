@@ -26,6 +26,7 @@ x-airflow-common: &airflow-common
     - airflow
     - all
   environment: &airflow-common-env
+    UV_HTTP_TIMEOUT: '300'
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor # LocalExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${PG_USER:-airflow}:${PG_PASSWORD:-airflow}@postgres/${PG_DATABASE:-airflow}
@@ -90,7 +91,7 @@ services:
     healthcheck:
       test: ["CMD", "pg_isready", "-p", "5432", "-U", "${PG_USER:-airflow}"]
       interval: 60s
-      timeout: 20s
+      timeout: 40s
       retries: 3
 
   redis:
@@ -130,7 +131,7 @@ services:
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 60s
-      timeout: 20s
+      timeout: 40s
       retries: 3
 
   create_s3_buckets:
@@ -183,7 +184,7 @@ services:
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://mlflow:5000 || exit 1
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       retries: 3
 
   fastapi:
@@ -215,7 +216,7 @@ services:
     healthcheck:
       test: curl --include --request GET http://fastapi:8800/ || exit 1
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       start_period: 120s
       retries: 3
 
@@ -228,7 +229,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       retries: 5
       start_period: 30s
     restart: always
@@ -243,7 +244,7 @@ services:
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       retries: 5
       start_period: 30s
     restart: always
@@ -258,7 +259,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       retries: 5
       start_period: 30s
     restart: always
@@ -276,7 +277,7 @@ services:
         - "CMD-SHELL"
         - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       retries: 5
       start_period: 30s
     environment:
@@ -298,7 +299,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
       interval: 60s
-      timeout: 10s
+      timeout: 40s
       retries: 5
       start_period: 30s
     restart: always
