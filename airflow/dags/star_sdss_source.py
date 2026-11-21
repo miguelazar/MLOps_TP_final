@@ -11,6 +11,7 @@ JOIN SpecObj AS s ON s.bestobjid = p.objid
 WHERE s.scienceprimary = 1
 ORDER BY NEWID()'''
 COLUMNS = ['objid', 'ra', 'dec', 'u', 'g', 'r', 'i', 'z', 'class', 'redshift']
+CLASSES = ('GALAXY', 'QSO', 'STAR')
 
 
 def parse_sdss_csv(text):
@@ -30,6 +31,22 @@ def parse_sdss_csv(text):
     writer.writeheader()
     writer.writerows(rows)
     return out.getvalue().encode('utf-8'), len(rows)
+
+
+def count_classes(payload):
+    """Cuenta filas por clase en un CSV (bytes o texto). Una clase ausente cuenta 0."""
+    text = payload.decode('utf-8') if isinstance(payload, bytes) else payload
+    counts = dict.fromkeys(CLASSES, 0)
+    for row in csv.DictReader(io.StringIO(text, newline='')):
+        label = (row.get('class') or '').strip().upper()
+        if label in counts:
+            counts[label] += 1
+    return counts
+
+
+def smallest_class_rows(counts):
+    """Filas de la clase más escasa; si falta una clase, el resultado es 0."""
+    return min(counts.get(name, 0) for name in CLASSES)
 
 
 def fetch_csv():
